@@ -1,10 +1,11 @@
 package org.odpi.openmetadata.server.actuator;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.odpi.openmetadata.server.OMAGServer;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
@@ -16,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Created by tijana.pavicic on egeria
@@ -30,8 +31,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestPropertySource(properties = "spring.config.additional-location=classpath:application-test.properties")
 public class ActuatorEndpointsTest {
+    public static final String URL = "http://localhost:";
+    public static final String MANAGMENT_CONTEXT_PATH = "/actuator/actuator";
+
     @Autowired
     RestTemplateBuilder restTemplateBuilder;
+
     @LocalManagementPort
     int managementPort;
     private MockMvc mockMvc;
@@ -40,14 +45,48 @@ public class ActuatorEndpointsTest {
     public void testMetricsActuator() throws JSONException {
         ResponseEntity<String> response;
         response = restTemplateBuilder
-                .rootUri("http://localhost:" + managementPort + "/actuator/actuator")
+                .rootUri(URL + managementPort + MANAGMENT_CONTEXT_PATH)
                 .build().exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
 
+        assertInstanceOf(ResponseEntity.class, response);
         assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
 
-        JSONAssert.assertEquals(response.getBody(), response.getBody().toString(), true);
+        JSONObject body = new JSONObject(response.getBody());
+        assertNotNull(body);
 
-        // todo add asertions
+        JSONArray metricsNamesArray = (JSONArray) body.get("names");
+        assertEquals(50, metricsNamesArray.length());
+
+    }
+
+    @Test
+    public void testMetricsActuatorApplicationStarted() throws JSONException {
+        ResponseEntity<String> response;
+        response = restTemplateBuilder
+                .rootUri(URL + managementPort + MANAGMENT_CONTEXT_PATH)
+                .build().exchange("/metrics/application.started.time", HttpMethod.GET, new HttpEntity<>(null), String.class);
+
+        assertInstanceOf(ResponseEntity.class, response);
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+
+        JSONObject body = new JSONObject(response.getBody());
+        assertNotNull(body);
+
+    }
+
+    @Test
+    public void testMetricsActuatorApplicationReady() throws JSONException {
+        ResponseEntity<String> response;
+        response = restTemplateBuilder
+                .rootUri(URL + managementPort + MANAGMENT_CONTEXT_PATH)
+                .build().exchange("/metrics/application.ready.time", HttpMethod.GET, new HttpEntity<>(null), String.class);
+
+        assertInstanceOf(ResponseEntity.class, response);
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+
+        JSONObject body = new JSONObject(response.getBody());
+        assertNotNull(body);
+
     }
 
 }
